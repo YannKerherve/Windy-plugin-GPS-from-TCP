@@ -20,6 +20,10 @@
            <p> {gpsData}</p>
            <p>  Latitude: {latitude}° </p>
            <p>  Longitude: {longitude}° </p>
+           <div class="plugin__buttons">
+           <button on:click={centerShip}>Center Ship</button>
+           <button on:click={toggleFollowShip}>{followShip ? 'Stop Follow' : 'Follow Ship'}</button>
+</div>
     {/if}
     {#if error}
         <div class="error">
@@ -38,6 +42,14 @@
     let markerLayer = L.layerGroup().addTo(map);
     let gpsData = 'Aucune donnée reçue pour le moment...';
     let error = '';
+    let lastLatitude: number | null = null;
+    let lastLongitude: number | null = null;
+    let courseOverGround: number = 0;
+    let boatPath: L.Polyline | null = null;
+    let pathLatLngs: L.LatLng[] = [];
+    let followShip = true;
+
+
 
     // Fonction pour récupérer les données de l'API locale
     async function fetchGPSData() {
@@ -74,21 +86,100 @@
                     return longitude;
                 }
 
+const newLat = latitude;
+const newLon = longitude;
+
+if (lastLatitude !== null && lastLongitude !== null && newLat !== null && newLon !== null) {
+    courseOverGround = calculateBearing(lastLatitude, lastLongitude, newLat, newLon);
+}
+lastLatitude = newLat;
+lastLongitude = newLon;
+
+addBoatMarker(newLat, newLon, courseOverGround);
 
 
-                   
-                if (latitude && longitude) {
-                   addMarkerOnMap(parseFloat(latitude), parseFloat(longitude));
-                   }
             }
         } catch (err) {
             error = `Erreur lors de la récupération des données : ${err.message || err}`;
             console.error('Erreur de récupération des données:', err);
         }
     }
+
+function addBoatMarker(lat: number, lon: number, cog: number) {
+    if (!map) return;
+
+    markerLayer.clearLayers();
+
+    // Ajouter la position à la trace
+    const newLatLng = L.latLng(lat, lon);
+    pathLatLngs.push(newLatLng);
+
+    // Créer ou mettre à jour la polyline
+    if (!boatPath) {
+        boatPath = L.polyline(pathLatLngs, { color: 'blue', weight: 3 }).addTo(map);
+    } else {
+        boatPath.setLatLngs(pathLatLngs);
+    }
+
+    // Créer l’icône flèche rouge tournante
+    const icon = L.divIcon({
+        className: '',
+        html: `
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 100 100" style="transform: rotate(${cog}deg);">
+                <polygon points="50,0 90,100 50,80 10,100" fill="red" stroke="black" stroke-width="3"/>
+            </svg>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+    });
+
+    // Ajoute le marqueur bateau
+    L.marker(newLatLng, { icon }).addTo(markerLayer);
+
+    // Si le suivi est activé, on centre la carte sur le bateau
+    if (followShip) {
+        map.setView(newLatLng);
+    }
+}
+function centerShip() {
+    if (lastLatitude !== null && lastLongitude !== null) {
+        map.setView([lastLatitude, lastLongitude]);
+    }
+}
+
+function toggleFollowShip() {
+    followShip = !followShip;
+}
+
+function toRadians(deg: number): number {
+    return deg * Math.PI / 180;
+}
+
+function toDegrees(rad: number): number {
+    return rad * 180 / Math.PI;
+}
+
+// Calcul du cap entre deux points GPS en degrés (0° = Nord, augmente vers Est)
+function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const φ1 = toRadians(lat1);
+    const φ2 = toRadians(lat2);
+    const Δλ = toRadians(lon2 - lon1);
+
+    const y = Math.sin(Δλ) * Math.cos(φ2);
+    const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+    let θ = Math.atan2(y, x);
+    θ = toDegrees(θ);
+    return (θ + 360) % 360; // Normalise entre 0 et 360°
+}
+
+
+
+
+
+
     function addMarkerOnMap(lat, lon) {
     if (map) {
-markerLayer.clearLayers(); 
+markerLayer.clearLayers();
         // Crée le marqueur avec la popup contenant une icône qui tourne
 
                 const customIcon = L.divIcon({
@@ -106,7 +197,7 @@ markerLayer.clearLayers();
 
         // Ajoute le marqueur à la carte
         //const marker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
-        const marker = L.marker([lat, lon]).addTo(markerLayer);   
+        const marker = L.marker([lat, lon]).addTo(markerLayer);
 } else {
         console.error("Carte Windy non disponible !");
     }
