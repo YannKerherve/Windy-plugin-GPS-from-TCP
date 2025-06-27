@@ -20,9 +20,6 @@
            <p> {gpsData}</p>
            <p>  Latitude: {latitude}° </p>
            <p>  Longitude: {longitude}° </p>
-           <p>  Cog: {calculatedCOG.toFixed(1)}°</p>
-{/if}
-
     {/if}
     {#if error}
         <div class="error">
@@ -41,12 +38,6 @@
     let markerLayer = L.layerGroup().addTo(map);
     let gpsData = 'Aucune donnée reçue pour le moment...';
     let error = '';
-    let trace: L.LatLng[] = [];
-    let lastLat: number | null = null;
-    let lastLon: number | null = null;
-    let calculatedCOG = 0;
-    let trackPolyline: L.Polyline | null = null;
-    let headingMarker: L.Marker | null = null;
 
     // Fonction pour récupérer les données de l'API locale
     async function fetchGPSData() {
@@ -59,54 +50,18 @@
                 const latDirection = parts[2];
                 const longitudesal = parseFloat(parts[3]);
                 const lonDirection = parts[4];
-
                 latitude = convertLatitude(latitudesal, latDirection);
                 longitude = convertLongitude(longitudesal, lonDirection);
+                function convertLatitude(latitudesal, latDirection) {
+                    const degrees = Math.floor(latitudesal / 100);
+                    const minutes = latitudesal - (degrees * 100);
+                    let latitude = degrees + (minutes / 60);
 
-                if (latitude && longitude) {
-                    const latNum = parseFloat(latitude);
-                    const lonNum = parseFloat(longitude);
-
-                    // Calcul du cap
-                    if (lastLat !== null && lastLon !== null) {
-                        calculatedCOG = computeHeading(lastLat, lastLon, latNum, lonNum);
+                    if (latDirection === 'S') {
+                        latitude = -latitude;
                     }
-
-                    lastLat = latNum;
-                    lastLon = lonNum;
-
-                    updateTrace(latNum, lonNum);
-                    drawMarker(latNum, lonNum, calculatedCOG);
+                    return latitude;
                 }
-            }
-                function computeHeading(lat1: number, lon1: number, lat2: number, lon2: number): number {
-                    const toRad = (deg: number) => deg * Math.PI / 180;
-                    const toDeg = (rad: number) => rad * 180 / Math.PI;
-
-                    const dLon = toRad(lon2 - lon1);
-                    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-                    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-                              Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
-
-                    const brng = Math.atan2(y, x);
-                    return (toDeg(brng) + 360) % 360;
-                }
-                function drawMarker(lat: number, lon: number, heading: number) {
-                    markerLayer.clearLayers();
-
-                    const arrow = L.divIcon({
-                        html: `
-                        <div style="transform: rotate(${heading}deg); font-size: 24px; color: black;">
-                            ➤
-                        </div>
-                        <div style="font-size: 10px; text-align: center;">(calculated COG)</div>`,
-                        iconSize: [30, 42],
-                        className: 'heading-arrow'
-                    });
-
-                    headingMarker = L.marker([lat, lon], { icon: arrow }).addTo(markerLayer);
-                }
-
 
                 function convertLongitude(longitudesal, lonDirection) {
                     const degrees = Math.floor(longitudesal / 100);
@@ -121,19 +76,10 @@
 
 
 
-
+                   
                 if (latitude && longitude) {
                    addMarkerOnMap(parseFloat(latitude), parseFloat(longitude));
                    }
-
-
-
-
-
-
-
-
-
             }
         } catch (err) {
             error = `Erreur lors de la récupération des données : ${err.message || err}`;
@@ -142,7 +88,7 @@
     }
     function addMarkerOnMap(lat, lon) {
     if (map) {
-markerLayer.clearLayers();
+markerLayer.clearLayers(); 
         // Crée le marqueur avec la popup contenant une icône qui tourne
 
                 const customIcon = L.divIcon({
@@ -160,7 +106,7 @@ markerLayer.clearLayers();
 
         // Ajoute le marqueur à la carte
         //const marker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
-        const marker = L.marker([lat, lon]).addTo(markerLayer);
+        const marker = L.marker([lat, lon]).addTo(markerLayer);   
 } else {
         console.error("Carte Windy non disponible !");
     }
