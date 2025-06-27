@@ -44,7 +44,7 @@
         try {
             const response = await fetch("http://localhost:5000/gps-data");
             gpsData = await response.text();
-            if (gpsData.startsWith('$GPGLL')){
+            if (gpsData.startsWith('$') && gpsData.slice(3, 6) === 'GLL') {
                 const parts = gpsData.split(',');
                 const latitudesal = parseFloat(parts[1]);
                 const latDirection = parts[2];
