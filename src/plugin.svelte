@@ -85,6 +85,35 @@
                     }
                     return longitude;
                 }
+            } else if (gpsData.startsWith('$IIRMC')) {
+                const parts = gpsData.split(',');
+                const latitudesal = parseFloat(parts[3]);
+                const latDirection = parts[4];
+                const longitudesal = parseFloat(parts[5]);
+                const lonDirection = parts[6];
+                latitude = convertLatitude(latitudesal, latDirection);
+                longitude = convertLongitude(longitudesal, lonDirection);
+                function convertLatitude(latitudesal, latDirection) {
+                    const degrees = Math.floor(latitudesal / 100);
+                    const minutes = latitudesal - (degrees * 100);
+                    let latitude = degrees + (minutes / 60);
+
+                    if (latDirection === 'S') {
+                        latitude = -latitude;
+                    }
+                    return latitude;
+                }
+
+                function convertLongitude(longitudesal, lonDirection) {
+                    const degrees = Math.floor(longitudesal / 100);
+                    const minutes = longitudesal - (degrees * 100);
+                    let longitude = degrees + (minutes / 60);
+
+                    if (lonDirection === 'W') {
+                        longitude = -longitude;
+                    }
+                    return longitude;
+                }
 
 const newLat = latitude;
 const newLon = longitude;
