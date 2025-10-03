@@ -85,7 +85,22 @@
                     }
                     return longitude;
                 }
-            } else if (gpsData.startsWith('$IIRMC')) {
+
+
+const newLat = latitude;
+const newLon = longitude;
+
+if (lastLatitude !== null && lastLongitude !== null && newLat !== null && newLon !== null) {
+    courseOverGround = calculateBearing(lastLatitude, lastLongitude, newLat, newLon);
+}
+lastLatitude = newLat;
+lastLongitude = newLon;
+
+addBoatMarker(newLat, newLon, courseOverGround);
+
+
+            }
+             else if (gpsData.startsWith('$IIRMC')) {
                 const parts = gpsData.split(',');
                 const latitudesal = parseFloat(parts[3]);
                 const latDirection = parts[4];
@@ -128,7 +143,7 @@ addBoatMarker(newLat, newLon, courseOverGround);
 
 
             }
-        } catch (err) {
+       } catch (err) {
             error = `Erreur lors de la récupération des données : ${err.message || err}`;
             console.error('Erreur de récupération des données:', err);
         }
